@@ -78,6 +78,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Pose.cs" />
+    <Compile Include="Snippet.cs" />
     <Compile Include="KinectViewers\KinectBodyIndexView.cs" />
     <Compile Include="KinectViewers\KinectBodyView.cs" />
     <Compile Include="KinectViewers\KinectDepthView.cs" />
