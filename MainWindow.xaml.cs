@@ -25,6 +25,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
     using System.Windows.Threading;
     using System.Windows.Controls.Primitives;
     using System.Collections.Generic;
+    using System.Windows.Controls;
 
     /// <summary>
     /// Interaction logic for the MainWindow
@@ -32,6 +33,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
     public sealed partial class MainWindow : Window, INotifyPropertyChanged, IDisposable
     {
         private List<Snippet> snippets;
+        private int backCode;
+        private int armsCode;
+        private int legsCode;
 
         private bool userIsDraggingSlider = false;
         private bool userDraggedSlider = false;
@@ -605,21 +609,90 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             //lblProgressStatus.Text = TimeSpan.FromSeconds(sliProgress.Value).ToString(@"hh\:mm\:ss");
         }
 
+        /// <summary>
+        /// Starts or Stops the recording of the snippet
+        /// Changes GUI accordingly
+        /// </summary>
         private void SnippetButton_Click(object sender, RoutedEventArgs e)
         {
             if (recordingSnippet)
             {
+                radioButtonsStack.IsEnabled = false;
                 recordingSnippet = false;
                 SnippetButton.Content = "StartSnippet";
-                snippets[snippets.Count-1].Ending = TimeSpan.FromSeconds(sliProgress.Value);
+
+                //Gets last snippet of the list (which is the one recording at the moment) and adds data
+                snippets[snippets.Count - 1].Ending = TimeSpan.FromSeconds(sliProgress.Value);
+                snippets[snippets.Count - 1].CodeBack = backCode;
+                snippets[snippets.Count - 1].CodeArms = armsCode;
+                snippets[snippets.Count - 1].CodeLegs = legsCode;
+
                 Debug.WriteLine(snippets[snippets.Count - 1].InfoAsString());
             }
             else
             {
+                radioButtonsStack.IsEnabled = true;
                 recordingSnippet = true;
                 SnippetButton.Content = "StopSnippet";
+
                 Snippet snippet = new Snippet(TimeSpan.FromSeconds(sliProgress.Value));
                 snippets.Add(snippet);
+            }
+        }
+
+        /// <summary>
+        /// Updates the OWAS-Code based on the RadioButtons
+        /// </summary>
+        private void RadioButton_Check(object sender,RoutedEventArgs e)
+        {
+            RadioButton radioButton = sender as RadioButton;
+            if (radioButton.IsChecked.Value)
+            {
+                switch (radioButton.Name)
+                {
+                    case "back1":
+                        backCode = 1;
+                        break;
+                    case "back2":
+                        backCode = 2;
+                        break;
+                    case "back3":
+                        backCode = 3;
+                        break;
+                    case "back4":
+                        backCode = 4;
+                        break;
+                    case "arms1":
+                        armsCode = 1;
+                        break;
+                    case "arms2":
+                        armsCode = 2;
+                        break;
+                    case "arms3":
+                        armsCode = 3;
+                        break;
+                    case "legs1":
+                        legsCode = 1;
+                        break;
+                    case "legs2":
+                        legsCode = 2;
+                        break;
+                    case "legs3":
+                        legsCode = 3;
+                        break;
+                    case "legs4":
+                        legsCode = 4;
+                        break;
+                    case "legs5":
+                        legsCode = 5;
+                        break;
+                    case "legs6":
+                        legsCode = 6;
+                        break;
+                    case "legs7":
+                        legsCode = 7;
+                        break;
+                }
             }
         }
     }

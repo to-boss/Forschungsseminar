@@ -16,6 +16,10 @@
     </Window.Resources>
 
     <Grid Margin="10 0 10 0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="3*" />
@@ -23,11 +27,33 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Image Grid.Row="0" Source="Images\Logo.png" HorizontalAlignment="Left" Stretch="Fill" Height="32" Width="81" Margin="0 10 0 5" />
-        <TextBlock Grid.Row="0" Margin="0 0 -1 0" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource MediumGreyBrush}" FontFamily="Segoe UI" FontSize="18"><Run Text="Record and Playback Basics"/></TextBlock>
-        <Image Grid.Row="0" Source="Images\Status.png" Stretch="None" HorizontalAlignment="Center" Margin="0 0 0 5" />
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <Image Source="Images\Logo.png" Height="32" Width="81" />
+            <TextBlock Foreground="{StaticResource MediumGreyBrush}" FontFamily="Segoe UI" FontSize="18"><Run Text="Record and Playback Basics"/></TextBlock>
+            <Image Source="Images\Status.png" Height="32" Width="81" />
+        </StackPanel>
+        
+        <StackPanel x:Name="radioButtonsStack" Grid.Column="0" Grid.Row="1" Grid.RowSpan="3" Margin="0 0 5 0" IsEnabled="False">
+            <Label>Back:</Label>
+            <RadioButton x:Name="back1" GroupName="back" IsChecked="True" Checked="RadioButton_Check">straight</RadioButton>
+            <RadioButton x:Name="back2" GroupName="back" Checked="RadioButton_Check">bent</RadioButton>
+            <RadioButton x:Name="back3" GroupName="back" Checked="RadioButton_Check">twisted</RadioButton>
+            <RadioButton x:Name="back4" GroupName="back" Checked="RadioButton_Check">bent and twisted</RadioButton>
+            <Label>Arms:</Label>
+            <RadioButton x:Name="arms1" GroupName="arms" IsChecked="True" Checked="RadioButton_Check">both below shoulder</RadioButton>
+            <RadioButton x:Name="arms2" GroupName="arms" Checked="RadioButton_Check">one above shoulder</RadioButton>
+            <RadioButton x:Name="arms3" GroupName="arms" Checked="RadioButton_Check">both above shoulder</RadioButton>
+            <Label>Legs:</Label>
+            <RadioButton x:Name="legs1"  GroupName="legs" IsChecked="True" Checked="RadioButton_Check">sitting</RadioButton>
+            <RadioButton x:Name="legs2"  GroupName="legs" Checked="RadioButton_Check">standing on two legs</RadioButton>
+            <RadioButton x:Name="legs3"  GroupName="legs" Checked="RadioButton_Check">standing on one leg</RadioButton>
+            <RadioButton x:Name="legs4"  GroupName="legs" Checked="RadioButton_Check">standing on two bent knees</RadioButton>
+            <RadioButton x:Name="legs5"  GroupName="legs" Checked="RadioButton_Check">standing on one bent knee</RadioButton>
+            <RadioButton x:Name="legs6"  GroupName="legs" Checked="RadioButton_Check">kneeling</RadioButton>
+            <RadioButton x:Name="legs7"  GroupName="legs" Checked="RadioButton_Check">walking</RadioButton>
+        </StackPanel>
 
-        <Grid Grid.Row="1" Grid.RowSpan="3" Background="Black">
+        <Grid Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Background="Black">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />

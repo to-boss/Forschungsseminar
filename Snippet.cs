@@ -83,7 +83,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
         public string InfoAsString()
         {
-            return "Start: " + Beginning + ", End: " + Ending +", Duration: "+ Duration;
+            return "Start: " + Beginning + ", End: " + Ending +", Duration: "+ Duration +", Code: " + Code;
         }
     }
 }
