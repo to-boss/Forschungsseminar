@@ -8,6 +8,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Windows;
     using System.Windows.Media;
     using Microsoft.Kinect;
@@ -290,6 +291,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
+
+                            //only show last 3 digits of TrackingId
+                            this.DrawText("Body " + body.TrackingId % 1000,jointPoints[JointType.Head], dc);
                         }
                     }
 
@@ -297,6 +301,27 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                 }
             }
+        }
+
+        /// <summary>
+        /// Draws text at a calculated new point
+        /// </summary>
+        /// <param name="text">text to write</param>
+        /// <param name="point">point to use</param>
+        /// <param name="drawingContext">drawing contect to draw to</param>
+        private void DrawText(string text, Point point, DrawingContext drawingContext)
+        {
+            FormattedText formattedText = new FormattedText(
+                text,
+                CultureInfo.GetCultureInfo("de"),
+                FlowDirection.LeftToRight,
+                new Typeface("Verdana"),
+                16,
+                Brushes.White);
+
+            Point newPoint = new Point(point.X - formattedText.Width / 2,point.Y - formattedText.Height - 10);
+
+            drawingContext.DrawText(formattedText, newPoint);
         }
 
         /// <summary>
