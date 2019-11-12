@@ -26,6 +26,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
     using System.Windows.Controls.Primitives;
     using System.Collections.Generic;
     using System.Windows.Controls;
+    using System.Linq;
+    using System.Collections.ObjectModel;
 
     /// <summary>
     /// Interaction logic for the MainWindow
@@ -36,6 +38,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         private int backCode;
         private int armsCode;
         private int legsCode;
+        private int owasCode;
+
+        private ObservableCollection<BoxBody> bodies;
 
         private bool userIsDraggingSlider = false;
         private bool userDraggedSlider = false;
@@ -116,6 +121,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         /// </summary>
         public MainWindow()
         {
+            this.bodies = new ObservableCollection<BoxBody>();
+
             this.snippets = new List<Snippet>();
 
             // initialize the components (controls) of the window
@@ -146,6 +153,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             // create the Body visualizer
             this.kinectBodyView = new KinectBodyView(this.kinectSensor);
 
+            //
+            this.kinectBodyView.BodiesChanged += new EventHandler<BodiesArrivedEventArgs>(UpdateComboBox);
+
             // set data context for display in UI
             this.DataContext = this;
             this.kinectIRViewbox.DataContext = this.kinectIRView;
@@ -158,6 +168,31 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        /// Gets or sets the current OwasCode to display
+        /// </summary>
+        public int OwasCode
+        {
+            get
+            {
+                return this.owasCode;
+            }
+
+            set
+            {
+                if (this.owasCode != value)
+                {
+                    this.owasCode = value;
+
+                    // notify any bound elements that the text has changed
+                    if (this.PropertyChanged != null)
+                    {
+                        this.PropertyChanged(this, new PropertyChangedEventArgs("OwasCode"));
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets the current status text to display
@@ -380,6 +415,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                         UpdateTimer(new TimeSpan(0,0,0));
                     }));
 
+                    
+
                     while (playback.State != KStudioPlaybackState.Stopped)
                     {
 
@@ -451,6 +488,28 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         }
 
        
+        private void UpdateComboBox(object sender, BodiesArrivedEventArgs e)
+        {
+            if (cbBodies.ItemsSource == null)
+            {
+                cbBodies.ItemsSource = bodies;
+                cbBodies.DisplayMemberPath = "Name";
+            }
+
+            foreach (Body body in e.Bodies)
+            {
+                BoxBody boxBody = new BoxBody(body);
+                //only adds a body when the TrackingId isnt already in the List
+                if (!bodies.Any(n => n.TrackindId == boxBody.TrackindId))
+                {
+                    bodies.Add(boxBody);
+                }
+            }
+
+            //removes all bodies which only exist in list bodies and not in e.Bodies
+            bodies.Remove(a => !e.Bodies.Exists(b => a.TrackindId == b.TrackingId));
+        }
+
         private void UpdateTimer(TimeSpan time)
         {
             this.CurrentTimeText = "Current Time: " + time.ToString(@"hh\:mm\:ss") + "/" + duration.ToString(@"hh\:mm\:ss");
@@ -694,6 +753,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                         break;
                 }
             }
+            OwasCode = int.Parse(backCode.ToString() + armsCode.ToString() + legsCode.ToString()); ;
         }
     }
 }
