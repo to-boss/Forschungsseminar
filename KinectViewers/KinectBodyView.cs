@@ -9,6 +9,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Windows;
     using System.Windows.Media;
     using Microsoft.Kinect;
@@ -23,6 +24,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
         /// <summary> Array for the bodies (Kinect will track up to 6 people simultaneously) </summary>
         private Body[] bodies = null;
+
+        private List<Body> bodiesList = null;
 
         /// <summary>
         /// Radius of drawn hand circles
@@ -109,6 +112,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         /// </summary>
         private List<Pen> bodyColors;
 
+        public event EventHandler<BodiesArrivedEventArgs> BodiesChanged;
+
         /// <summary>
         /// Initializes a new instance of the KinectBodyView class
         /// </summary>
@@ -119,6 +124,8 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             {
                 throw new ArgumentNullException("kinectSensor");
             }
+
+            bodiesList = new List<Body>();
 
             // open the reader for the body frames
             this.bodyFrameReader = kinectSensor.BodyFrameSource.OpenReader();
@@ -244,7 +251,36 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             {
                 // visualize the new body data
                 this.UpdateBodyFrame(this.bodies);
+
+                int addedToList = 0;
+                bodiesList.Clear();
+                foreach (var body in bodies)
+                {
+                    if (body != null)
+                    {
+                        if(body.TrackingId > 0)
+                        {
+                            bodiesList.Add(body);
+                            addedToList++;
+                        }
+                    }
+                }
+                if (addedToList > 0)
+                {
+                    //TODO maybe only send added bodies, not whole list
+                    //trigger DataReceived event
+                    this.OnBodiesChanged(bodiesList);
+                }
             }
+        }
+
+        private void OnBodiesChanged(List<Body> bodiesList)
+        {
+            var handler = BodiesChanged;
+            if (handler == null)
+                return;
+
+            handler(this, new BodiesArrivedEventArgs(bodiesList));
         }
 
         /// <summary>
@@ -292,8 +328,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            //only show last 3 digits of TrackingId
-                            this.DrawText("Body " + body.TrackingId % 1000,jointPoints[JointType.Head], dc);
+                            this.DrawText("Body " + body.TrackingId,jointPoints[JointType.Head], dc);
                         }
                     }
 

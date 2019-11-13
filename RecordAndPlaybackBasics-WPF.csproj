@@ -70,6 +70,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="XmlExporter.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -78,6 +79,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="BodiesArrivedEventArgs.cs" />
+    <Compile Include="BoxBody.cs" />
+    <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Pose.cs" />
     <Compile Include="Snippet.cs" />
     <Compile Include="KinectViewers\KinectBodyIndexView.cs" />
