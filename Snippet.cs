@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Kinect;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,9 +7,10 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 {
-    class Snippet
+    public class Snippet
     {
         private int[] code;
+        private List<Body> trackedBodyFrames;
 
         public Snippet()
         {
@@ -23,6 +25,12 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         {
             code = new int[3];
             Beginning = currentPlaybackTime;
+            trackedBodyFrames = new List<Body>();
+        }
+
+        public List<Body> TrackedBodyFrames
+        {
+            get { return trackedBodyFrames; }
         }
 
         public TimeSpan Beginning { get; set; }
@@ -84,6 +92,11 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         public string InfoAsString()
         {
             return "Start: " + Beginning + ", End: " + Ending +", Duration: "+ Duration +", Code: " + Code;
+        }
+
+        public void addTrackedBody(Body trackedBody)
+        {
+            this.trackedBodyFrames.Add(trackedBody);
         }
     }
 }

@@ -496,18 +496,33 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 cbBodies.DisplayMemberPath = "Name";
             }
 
+            // Updates the ComboBox observable collection
             foreach (Body body in e.Bodies)
             {
                 BoxBody boxBody = new BoxBody(body);
-                //only adds a body when the TrackingId isnt already in the List
+                // only adds a body when the TrackingId isnt already in the List
                 if (!bodies.Any(n => n.TrackindId == boxBody.TrackindId))
                 {
                     bodies.Add(boxBody);
                 }
             }
 
-            //removes all bodies which only exist in list bodies and not in e.Bodies
+            // removes all bodies which only exist in bodies and not in e.Bodies
             bodies.Remove(a => !e.Bodies.Exists(b => a.TrackindId == b.TrackingId));
+
+            // add trackedBody to snippet
+            if (recordingSnippet)
+            {
+                BoxBody selectedBody = cbBodies.SelectedItem as BoxBody;
+                if (selectedBody != null)
+                {
+                    Body trackedBody = e.Bodies.First(n => n.TrackingId == selectedBody.TrackindId);
+                    if(trackedBody != null)
+                    {
+                        snippets[snippets.Count - 1].addTrackedBody(trackedBody);
+                    }
+                }
+            }
         }
 
         private void UpdateTimer(TimeSpan time)
@@ -676,7 +691,6 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         {
             if (recordingSnippet)
             {
-                radioButtonsStack.IsEnabled = false;
                 recordingSnippet = false;
                 SnippetButton.Content = "StartSnippet";
 
@@ -687,10 +701,12 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 snippets[snippets.Count - 1].CodeLegs = legsCode;
 
                 Debug.WriteLine(snippets[snippets.Count - 1].InfoAsString());
+
+                XmlExporter xmlExporter = new XmlExporter();
+                xmlExporter.StartExport(snippets[snippets.Count - 1]);
             }
             else
             {
-                radioButtonsStack.IsEnabled = true;
                 recordingSnippet = true;
                 SnippetButton.Content = "StopSnippet";
 
