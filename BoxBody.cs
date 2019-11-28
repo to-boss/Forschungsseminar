@@ -34,7 +34,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         {
             get
             {
-                return "Body "+ trackingId;
+                return "Body "+ trackingId % 1000;
             }
         }
 

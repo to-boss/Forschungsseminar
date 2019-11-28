@@ -45,23 +45,87 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         private bool userIsDraggingSlider = false;
         private bool userDraggedSlider = false;
 
-        private bool recordingSnippet = false;
+        private bool _recordingSnippet = false;
 
-        /// <summary> Indicates if a recording is currently in progress </summary>
-        private bool isLoaded = false;
+        
+        private bool _fileLoaded = false;
 
-        /// <summary> Indicates if a playback is currently in progress </summary>
-        private bool isPlaying = false;
+        private bool _isPlaying = false;
 
-        /// <summary> Indicates if a playback is currently paused </summary>
         /// is true, because playback always starts paused
-        private bool isPaused = true;
+        private bool _isPaused = true;
+        private bool _isStopped = false;
+
+        /// when these Properties change, they trigger the UpdateState Method, to update theUI
+        /// <summary> Indicates if a snippet is currently recording </summary>
+        public bool RecordingSnippet
+        {
+            get { return _recordingSnippet; }
+            set
+            {
+                if (_recordingSnippet != value)
+                {
+                    _recordingSnippet = value;
+                    this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
+                }
+            }
+        }
+        /// <summary> Indicates if a recording is currently loaded </summary>
+        public bool FileLoaded
+        {
+            get { return _fileLoaded; }
+            set
+            {
+                if (_fileLoaded != value)
+                {
+                    _fileLoaded = value;
+                    this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
+                }
+            }
+        }
+        /// <summary> Indicates if a playback is currently playing </summary>
+        public bool IsPlaying
+        {
+            get { return _isPlaying; }
+            set
+            {
+                if (_isPlaying != value)
+                {
+                    _isPlaying = value;
+                    this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
+                }
+            }
+        }
+        /// <summary> Indicates if a playback is currently paused </summary>
+        public bool IsPaused
+        {
+            get { return _isPaused; }
+            set
+            {
+                if (_isPaused != value)
+                {
+                    _isPaused = value;
+                    this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
+                }
+            }
+        }
 
         /// <summary> Indicates if a playback is stopped </summary>
-        private bool isStopped = false;
+        public bool IsStopped
+        {
+            get { return _isStopped; }
+            set
+            {
+                if (_isStopped != value)
+                {
+                    _isStopped = value;
+                    this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
+                }
+            }
+        }
 
         private TimeSpan timePlayed;
-        private TimeSpan startingPoint;
+        private TimeSpan newStartingPoint;
         private TimeSpan duration = new TimeSpan(0,0,0);
 
         private string lastFile = string.Empty;
@@ -153,8 +217,11 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             // create the Body visualizer
             this.kinectBodyView = new KinectBodyView(this.kinectSensor);
 
-            //
+            // add Eventhandler which updates the comboBox 
             this.kinectBodyView.BodiesChanged += new EventHandler<BodiesArrivedEventArgs>(UpdateComboBox);
+
+            // add Eventhandler which updates the StartSnippet Button
+            this.cbBodies.SelectionChanged += new SelectionChangedEventHandler(OnCbBodiesChanged);
 
             // set data context for display in UI
             this.DataContext = this;
@@ -363,29 +430,30 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             KStudioPlayback playback = (KStudioPlayback) sender;
             Debug.WriteLine("state: " + playback.State);
 
-            if (playback.State == KStudioPlaybackState.Playing)
+            if(playback != null)
             {
-                isLoaded = true;
-                isPlaying = true;
-                isPaused = false;
-                isStopped = false;
+                if (playback.State == KStudioPlaybackState.Playing)
+                {
+                    FileLoaded = true;
+                    IsPlaying = true;
+                    IsPaused = false;
+                    IsStopped = false;
+                }
+                else if (playback.State == KStudioPlaybackState.Paused)
+                {
+                    FileLoaded = true;
+                    IsPlaying = false;
+                    IsPaused = true;
+                    IsStopped = false;
+                }
+                else if (playback.State == KStudioPlaybackState.Stopped)
+                {
+                    FileLoaded = false;
+                    IsPlaying = false;
+                    IsPaused = false;
+                    IsStopped = true;
+                }
             }
-            else if (playback.State == KStudioPlaybackState.Paused)
-            {
-                isLoaded = true;
-                isPlaying = false;
-                isPaused = true;
-                isStopped = false;
-            }
-            else if (playback.State == KStudioPlaybackState.Stopped)
-            {
-                isLoaded = false;
-                isPlaying = false;
-                isPaused = false;
-                isStopped = true;
-            }
-
-            this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
         }
 
         /// <summary>
@@ -406,13 +474,15 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     playback.EndBehavior = KStudioPlaybackEndBehavior.Stop;
                     playback.StartPaused();
 
-                    this.isLoaded = true;
-                    duration = playback.Duration;
+                    this._fileLoaded = true;
+                    this.timePlayed = new TimeSpan(0, 0, 0);
 
-                    var watch = new Stopwatch();
+                    this.duration = playback.Duration;
+
+                    // Update UI Timer once at start
                     Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                     {
-                        UpdateTimer(new TimeSpan(0,0,0));
+                        UpdateTimer(timePlayed);
                     }));
 
                     
@@ -422,22 +492,19 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                         while (playback.State == KStudioPlaybackState.Playing)
                         {
-                            //Check if stopped, then check if paused, else keep playing
-                            if (isStopped)
+                            // Check if stopped, then check if paused, else keep playing
+                            if (_isStopped)
                             {
-                                watch.Stop();
                                 playback.Stop();
                             }
-                            else if (isPaused)
+                            else if (_isPaused)
                             {
-                                watch.Stop();
                                 playback.Pause();
                             }
                             else
                             {
-                                //timePlayed = watch.Elapsed;
+                                // Update the UI Timer to current playTime
                                 timePlayed = playback.CurrentRelativeTime;
-                                
                                 Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                                 {
                                     UpdateTimer(timePlayed);
@@ -447,35 +514,26 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                         while (playback.State == KStudioPlaybackState.Paused)
                         {
-                            if (isStopped)
+                            if (_isStopped)
                             {
-                                watch.Stop();
                                 playback.Stop();
                             }
-                            else if (!isPaused)
+                            else if (!_isPaused)
                             {
-                                watch.Start();
                                 playback.Resume();
                             }
                             else
                             {
+                                // Happens only when the user FINISHED dragging the slider
                                 if (userDraggedSlider)
                                 {
-                                    playback.SeekByRelativeTime(startingPoint);
                                     userDraggedSlider = false;
+                                    playback.SeekByRelativeTime(newStartingPoint);
                                     playback.Resume();
-                                    Debug.WriteLine("userDraggedSlider paused ausgeführt");
-                                }
-                                else
-                                {
-                                    Thread.Sleep(500);
                                 }
                             }
                         }
                     }
-
-                    //resets playback to beginning
-                    //playback.InPointByRelativeTime = playback.StartRelativeTime;
                 }
                 
                 client.DisconnectFromService();
@@ -511,7 +569,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             bodies.Remove(a => !e.Bodies.Exists(b => a.TrackindId == b.TrackingId));
 
             // add trackedBody to snippet
-            if (recordingSnippet)
+            if (_recordingSnippet)
             {
                 BoxBody selectedBody = cbBodies.SelectedItem as BoxBody;
                 if (selectedBody != null)
@@ -519,7 +577,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     Body trackedBody = e.Bodies.First(n => n.TrackingId == selectedBody.TrackindId);
                     if(trackedBody != null)
                     {
-                        snippets[snippets.Count - 1].addTrackedBody(trackedBody);
+                        snippets[snippets.Count - 1].AddTrackedBody(trackedBody);
                     }
                 }
             }
@@ -540,42 +598,60 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         }
 
         /// <summary>
-        /// Enables/Disables the record and playback buttons in the UI
+        /// Changes the UI based on the Property States
         /// </summary>
         private void UpdateState()
         {
-            if (isPlaying)
+            if (IsPlaying)
             {
                 LoadButton.IsEnabled = false;
                 PlayPauseButton.IsEnabled = true;
+                PlayPauseButton.Content = "Pause";
                 StopButton.IsEnabled = true;
-                SnippetButton.IsEnabled = true;
                 this.RecordPlaybackStatusText = "Playback is playing";
+                sliProgress.IsEnabled = true;
             }
-            else if (isPaused)
+            else if (IsPaused)
             {
                 LoadButton.IsEnabled = false;
                 PlayPauseButton.IsEnabled = true;
+                PlayPauseButton.Content = "Resume";
                 StopButton.IsEnabled = true;
-                SnippetButton.IsEnabled = true;
                 this.RecordPlaybackStatusText = "Playback is paused";
+                sliProgress.IsEnabled = true;
             }
-            else if (isLoaded)
+            // maybe useless?
+            else if (FileLoaded)
             {
                 LoadButton.IsEnabled = false;
                 PlayPauseButton.IsEnabled = true;
                 StopButton.IsEnabled = true;
-                SnippetButton.IsEnabled = true;
                 this.RecordPlaybackStatusText = "Playback is loaded";
             }
-            else if(isStopped)
+            else if(IsStopped)
             {
                 LoadButton.IsEnabled = true;
                 PlayPauseButton.IsEnabled = false;
                 StopButton.IsEnabled = false;
-                SnippetButton.IsEnabled = false;
                 this.RecordPlaybackStatusText = "Playback is stopped";
                 this.CurrentTimeText = "";
+                sliProgress.IsEnabled = false;
+            }
+
+            if (RecordingSnippet)
+            {
+                LoadButton.IsEnabled = false;
+                PlayPauseButton.IsEnabled = false;
+                StopButton.IsEnabled = false;
+                SnippetButton.IsEnabled = true;
+                SnippetButton.Content = "StopSnippet";
+                sliProgress.IsEnabled = false;
+            }
+            else
+            {
+                SnippetButton.Content = "StartSnippet";
+
+                if (!IsStopped) sliProgress.IsEnabled = true;
             }
         }
 
@@ -603,26 +679,27 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
-            isStopped = true;
+            _isStopped = true;
             PlayPauseButton.Content = "Play";
             kinectBodyIndexViewbox.DataContext = null;
             kinectBodyViewbox.DataContext = null;
             kinectDepthViewbox.DataContext = null;
             kinectIRViewbox.DataContext = null;
+
+            cbBodies.ItemsSource = null;
         }
 
         private void SliProgress_DragStarted(object sender, DragStartedEventArgs e)
         {
             userIsDraggingSlider = true;
-            isPaused = true;
+            _isPaused = true;
         }
 
         private void SliProgress_DragCompleted(object sender, DragCompletedEventArgs e)
         {
             userIsDraggingSlider = false;
-            startingPoint = TimeSpan.FromSeconds(sliProgress.Value);
             userDraggedSlider = true;
-            //mePlayer.Position = TimeSpan.FromSeconds(sliProgress.Value);
+            newStartingPoint = TimeSpan.FromSeconds(sliProgress.Value);
         }
 
         private void LoadButton_Click(object sender, RoutedEventArgs e)
@@ -661,15 +738,13 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
         private void PlayPauseButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!isPaused)
+            if (!_isPaused)
             {
-                PlayPauseButton.Content = "Resume";
-                isPaused = true;
+                _isPaused = true;
             }
             else
             {
-                PlayPauseButton.Content = "Pause";
-                isPaused = false;
+                _isPaused = false;
             }
         }
 
@@ -689,10 +764,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         /// </summary>
         private void SnippetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (recordingSnippet)
+            if (RecordingSnippet)
             {
-                recordingSnippet = false;
-                SnippetButton.Content = "StartSnippet";
+                RecordingSnippet = false;
 
                 //Gets last snippet of the list (which is the one recording at the moment) and adds data
                 snippets[snippets.Count - 1].Ending = TimeSpan.FromSeconds(sliProgress.Value);
@@ -700,15 +774,15 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 snippets[snippets.Count - 1].CodeArms = armsCode;
                 snippets[snippets.Count - 1].CodeLegs = legsCode;
 
+                snippets[snippets.Count - 1].PrintXml();
+
                 Debug.WriteLine(snippets[snippets.Count - 1].InfoAsString());
 
-                XmlExporter xmlExporter = new XmlExporter();
-                xmlExporter.StartExport(snippets[snippets.Count - 1]);
+                
             }
             else
             {
-                recordingSnippet = true;
-                SnippetButton.Content = "StopSnippet";
+                RecordingSnippet = true;
 
                 Snippet snippet = new Snippet(TimeSpan.FromSeconds(sliProgress.Value));
                 snippets.Add(snippet);
@@ -770,6 +844,26 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 }
             }
             OwasCode = int.Parse(backCode.ToString() + armsCode.ToString() + legsCode.ToString()); ;
+        }
+
+        /// <summary>
+        /// Updates the SnippetButton when the selected item changed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public void OnCbBodiesChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if((sender as ComboBox).SelectedItem != null)
+            {
+                SnippetButton.IsEnabled = true;
+            }
+            else
+            {
+                if (!_recordingSnippet)
+                {
+                    SnippetButton.IsEnabled = false;
+                }
+            }
         }
     }
 }

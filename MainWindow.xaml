@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="Microsoft.Samples.Kinect.RecordAndPlaybackBasics.MainWindow"
         Title="Record and Playback Basics" 
-        Height="720" Width="650"  
-        Closing="MainWindow_Closing" MinWidth="650" MinHeight="720">
+        Height="720" Width="800"  
+        Closing="MainWindow_Closing" MinWidth="800" MinHeight="720">
 
     <Window.Resources>
         <SolidColorBrush x:Key="MediumGreyBrush" Color="#ff6e6e6e" />
@@ -98,7 +98,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <Slider Grid.Row="0" Grid.ColumnSpan="2" TickPlacement="BottomRight" TickFrequency="60" x:Name="sliProgress" Thumb.DragStarted="SliProgress_DragStarted"  Thumb.DragCompleted="SliProgress_DragCompleted" ValueChanged="SliProgress_ValueChanged" Margin="10,10,0,5" />
+                <Slider Grid.Row="0" Grid.ColumnSpan="2" TickPlacement="BottomRight" TickFrequency="60" x:Name="sliProgress" Thumb.DragStarted="SliProgress_DragStarted"  Thumb.DragCompleted="SliProgress_DragCompleted" ValueChanged="SliProgress_ValueChanged" Margin="10,10,0,5" IsEnabled="False" />
                 <Label Grid.Row="0" Grid.Column="2" x:Name="currentTimeLabel" Content="{Binding CurrentTimeText}" Width="Auto" Margin="0 10 0 5"/>
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Background="White">
                     <Button x:Name="LoadButton" Content="Load" Width="90" Click="LoadButton_Click" Margin="5" Padding="5" />
