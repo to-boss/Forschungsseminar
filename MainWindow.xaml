@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="Microsoft.Samples.Kinect.RecordAndPlaybackBasics.MainWindow"
         Title="Record and Playback Basics" 
-        Height="720" Width="800"  
-        Closing="MainWindow_Closing" MinWidth="800" MinHeight="720">
+        Height="520" Width="1000"  
+        Closing="MainWindow_Closing" MinWidth="1000" MinHeight="520">
 
     <Window.Resources>
         <SolidColorBrush x:Key="MediumGreyBrush" Color="#ff6e6e6e" />
@@ -13,7 +13,37 @@
         <Style TargetType="{x:Type Image}">
             <Setter Property="SnapsToDevicePixels" Value="True" />
         </Style>
+        <RoutedUICommand x:Key="CommandLoad" Text="Text" />
+        <RoutedUICommand x:Key="CommandSkip" Text="Text" />
+        <RoutedUICommand x:Key="CommandReverse" Text="Text" />
+        <RoutedUICommand x:Key="CommandPlayPause" Text="Text" />
+        <RoutedUICommand x:Key="CommandStop" Text="Text" />
+        <RoutedUICommand x:Key="CommandSnippet" Text="Text" />
     </Window.Resources>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="{StaticResource CommandSkip}" 
+                    Executed="Skip" />
+        <CommandBinding Command="{StaticResource CommandReverse}" 
+                    Executed="Reverse" />
+        <CommandBinding Command="{StaticResource CommandPlayPause}" 
+                    Executed="PlayPause" />
+        <CommandBinding Command="{StaticResource CommandSnippet}" 
+                    Executed="RecordSnippet" />
+        <CommandBinding Command="{StaticResource CommandStop}" 
+                    Executed="Stop" />
+        <CommandBinding Command="{StaticResource CommandLoad}" 
+                    Executed="Load" />
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Key="L"  Command="{StaticResource CommandSkip}" />
+        <KeyBinding Key="J"  Command="{StaticResource CommandReverse}" />
+        <KeyBinding Key="K"  Command="{StaticResource CommandPlayPause}" />
+        <KeyBinding Key="Return"  Command="{StaticResource CommandSnippet}" />
+        <KeyBinding Key="Backspace"  Command="{StaticResource CommandStop}" />
+        <KeyBinding Key="F1"  Command="{StaticResource CommandLoad}" />
+    </Window.InputBindings>
 
     <Grid Margin="10 0 10 0">
         <Grid.ColumnDefinitions>
@@ -65,49 +95,57 @@
             <Label>Tracked Body:</Label>
             <ComboBox x:Name="cbBodies"></ComboBox>
         </StackPanel>
+        <Border x:Name="BorderRecording" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Background="Transparent"  BorderBrush="Transparent" BorderThickness="3">
 
-        <Grid Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Background="Black">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="2*"/>
-                <RowDefinition Height="2*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Viewbox x:Name="kinectIRViewbox" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center">
-                <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
-            </Viewbox>
-            <Viewbox x:Name="kinectDepthViewbox" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center">
-                <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
-            </Viewbox>
-            <Viewbox x:Name="kinectBodyIndexViewbox" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center">
-                <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
-            </Viewbox>
-            <Viewbox x:Name="kinectBodyViewbox" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center">
-                <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
-            </Viewbox>
-            <Grid Grid.Row="2" Grid.ColumnSpan="2" Background="White" >
+            <Grid Background="Black">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
                     <ColumnDefinition />
                     <ColumnDefinition />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="2*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <Slider Grid.Row="0" Grid.ColumnSpan="2" TickPlacement="BottomRight" TickFrequency="60" x:Name="sliProgress" Thumb.DragStarted="SliProgress_DragStarted"  Thumb.DragCompleted="SliProgress_DragCompleted" ValueChanged="SliProgress_ValueChanged" Margin="10,10,0,5" IsEnabled="False" />
-                <Label Grid.Row="0" Grid.Column="2" x:Name="currentTimeLabel" Content="{Binding CurrentTimeText}" Width="Auto" Margin="0 10 0 5"/>
-                <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Background="White">
-                    <Button x:Name="LoadButton" Content="Load" Width="90" Click="LoadButton_Click" Margin="5" Padding="5" />
-                    <Button x:Name="PlayPauseButton" Content="Play" Width="90" Click="PlayPauseButton_Click" Margin="5" Padding="5" IsEnabled="False" />
-                    <Button x:Name="StopButton" Content="Stop" Width="90" Click="StopButton_Click" Margin="5" Padding="5" IsEnabled="False" />
-                    <Button x:Name="SnippetButton" Content="StartSnippet" Width="90" Click="SnippetButton_Click" Margin="5" Padding="5" IsEnabled="False" />
-                    <TextBlock Text="{Binding RecordPlaybackStatusText}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource KinectBlueBrush}" FontFamily="Segoe UI" FontSize="18" Margin="0 0 -1 0"/>
-                </StackPanel>
+                <Viewbox x:Name="kinectIRViewbox" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" HorizontalAlignment="Center">
+                    <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
+                </Viewbox>
+                <Viewbox x:Name="kinectBodyViewbox" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" HorizontalAlignment="Center">
+                    <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
+                </Viewbox>
+                <Grid Grid.Row="2" Grid.ColumnSpan="2" Background="White" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="0.5*"/>
+                    </Grid.RowDefinitions>
+                    <Slider Grid.Row="0" Grid.ColumnSpan="2" TickPlacement="BottomRight" TickFrequency="60" x:Name="sliProgress" Thumb.DragStarted="SliProgress_DragStarted"  Thumb.DragCompleted="SliProgress_DragCompleted" ValueChanged="SliProgress_ValueChanged" Margin="10,10,0,5" IsEnabled="False" />
+                    <Label Grid.Row="0" Grid.Column="2" x:Name="currentTimeLabel" Content="{Binding CurrentTimeText}" Width="Auto" Margin="0 10 0 5"/>
+                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Background="White">
+                        <Button x:Name="LoadButton" Content="Load" Width="70" Command="{StaticResource CommandLoad}" Margin="5" Padding="5" />
+                        <Button x:Name="ReverseButton" Width="70" Command="{StaticResource CommandReverse}" Margin="5" Padding="5" IsEnabled="False">
+                            <Image Source="Images\controls\skip_backwards.png" Stretch="None"/>
+                        </Button>
+                        <Button x:Name="PlayPauseButton" Width="70" Command="{StaticResource CommandPlayPause}" Margin="5" Padding="5" IsEnabled="False">
+                            <Image x:Name="PlayPauseImage" Source="Images\controls\play.png"  Stretch="None"/>
+                        </Button>
+                        <Button x:Name="SkipButton"  Width="70" Command="{StaticResource CommandSkip}" Margin="5" Padding="5" IsEnabled="False">
+                            <Image Source="Images\controls\skip_forward.png"  Stretch="None"/>
+                        </Button>
+                        <Button x:Name="StopButton"  Width="70" Command="{StaticResource CommandStop}" Margin="5" Padding="5" IsEnabled="False" >
+                            <Image Source="Images\controls\stop.png"  Stretch="None"/>
+                        </Button>
+                        <Button x:Name="SnippetButton" Width="70" Command="{StaticResource CommandSnippet}" Margin="5" Padding="5" IsEnabled="False">
+                            <Image Source="Images\controls\record.png" Stretch="None"/>
+                        </Button>
+                        <TextBlock Text="{Binding RecordPlaybackStatusText}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource KinectBlueBrush}" FontFamily="Segoe UI" FontSize="18" Margin="0 0 -1 0"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
-        </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -28,6 +28,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
     using System.Windows.Controls;
     using System.Linq;
     using System.Collections.ObjectModel;
+    using System.Windows.Input;
 
     /// <summary>
     /// Interaction logic for the MainWindow
@@ -40,21 +41,31 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         private int legsCode;
         private int owasCode;
 
+        private readonly int skip_value = 10;
+        private readonly int reverse_value = 10;
+
         private ObservableCollection<BoxBody> bodies;
 
         private bool userIsDraggingSlider = false;
         private bool userDraggedSlider = false;
 
         private bool _recordingSnippet = false;
-
-        
         private bool _fileLoaded = false;
-
         private bool _isPlaying = false;
-
-        /// is true, because playback always starts paused
-        private bool _isPaused = true;
+        private bool _isPaused = false;
         private bool _isStopped = false;
+
+        private bool snippet_aborted = false;
+
+        private TimeSpan timePlayed;
+        private TimeSpan newStartingPoint;
+        private TimeSpan duration = new TimeSpan(0, 0, 0);
+
+        private string lastFile = string.Empty;
+
+
+        /// <summary> Number of playback iterations </summary>
+        private uint loopCount = 0;
 
         /// when these Properties change, they trigger the UpdateState Method, to update theUI
         /// <summary> Indicates if a snippet is currently recording </summary>
@@ -123,16 +134,6 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 }
             }
         }
-
-        private TimeSpan timePlayed;
-        private TimeSpan newStartingPoint;
-        private TimeSpan duration = new TimeSpan(0,0,0);
-
-        private string lastFile = string.Empty;
-
-
-        /// <summary> Number of playback iterations </summary>
-        private uint loopCount = 0;
 
         /// <summary> Delegate to use for placing a job with no arguments onto the Dispatcher </summary>
         private delegate void NoArgDelegate();
@@ -218,7 +219,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             this.kinectBodyView = new KinectBodyView(this.kinectSensor);
 
             // add Eventhandler which updates the comboBox 
-            this.kinectBodyView.BodiesChanged += new EventHandler<BodiesArrivedEventArgs>(UpdateComboBox);
+            this.kinectBodyView.BodiesChanged += new EventHandler<BodiesArrivedEventArgs>(BodiesArrived);
 
             // add Eventhandler which updates the StartSnippet Button
             this.cbBodies.SelectionChanged += new SelectionChangedEventHandler(OnCbBodiesChanged);
@@ -226,8 +227,6 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             // set data context for display in UI
             this.DataContext = this;
             this.kinectIRViewbox.DataContext = this.kinectIRView;
-            this.kinectDepthViewbox.DataContext = this.kinectDepthView;
-            this.kinectBodyIndexViewbox.DataContext = this.kinectBodyIndexView;
             this.kinectBodyViewbox.DataContext = this.kinectBodyView;
         }
 
@@ -253,10 +252,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     this.owasCode = value;
 
                     // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("OwasCode"));
-                    }
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("OwasCode"));
                 }
             }
         }
@@ -278,10 +274,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     this.kinectStatusText = value;
 
                     // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("KinectStatusText"));
-                    }
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("KinectStatusText"));
                 }
             }
         }
@@ -304,10 +297,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     this.recordPlayStatusText = value;
 
                     // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("RecordPlaybackStatusText"));
-                    }
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("RecordPlaybackStatusText"));
                 }
             }
         }
@@ -326,10 +316,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     this.currentTimeText = value;
 
                     // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("CurrentTimeText"));
-                    }
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("CurrentTimeText"));
                 }
             }
         }
@@ -415,16 +402,6 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
 
-        /// <summary>
-        /// Handles the user clicking on the Play button
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
-        private void PlayButton_Click(object sender, RoutedEventArgs e)
-        {
-            
-        }
-
         void HandleStateChange(Object sender, EventArgs e)
         {
             KStudioPlayback playback = (KStudioPlayback) sender;
@@ -474,7 +451,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     playback.EndBehavior = KStudioPlaybackEndBehavior.Stop;
                     playback.StartPaused();
 
-                    this._fileLoaded = true;
+                    this.FileLoaded = true;
                     this.timePlayed = new TimeSpan(0, 0, 0);
 
                     this.duration = playback.Duration;
@@ -493,11 +470,11 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                         while (playback.State == KStudioPlaybackState.Playing)
                         {
                             // Check if stopped, then check if paused, else keep playing
-                            if (_isStopped)
+                            if (IsStopped)
                             {
                                 playback.Stop();
                             }
-                            else if (_isPaused)
+                            else if (IsPaused)
                             {
                                 playback.Pause();
                             }
@@ -514,11 +491,11 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                         while (playback.State == KStudioPlaybackState.Paused)
                         {
-                            if (_isStopped)
+                            if (IsStopped)
                             {
                                 playback.Stop();
                             }
-                            else if (!_isPaused)
+                            else if (!IsPaused)
                             {
                                 playback.Resume();
                             }
@@ -538,15 +515,10 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                 
                 client.DisconnectFromService();
             }
-
-            // Update the UI after the background playback task has completed
-            //this.isPlaying = false;
-            //this.Dispatcher.BeginInvoke(new NoArgDelegate(UpdateState));
-            Debug.WriteLine("Stopped");
         }
 
        
-        private void UpdateComboBox(object sender, BodiesArrivedEventArgs e)
+        private void BodiesArrived(object sender, BodiesArrivedEventArgs e)
         {
             if (cbBodies.ItemsSource == null)
             {
@@ -569,8 +541,16 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             bodies.Remove(a => !e.Bodies.Exists(b => a.TrackindId == b.TrackingId));
 
             // add trackedBody to snippet
-            if (_recordingSnippet)
+            if (RecordingSnippet)
             {
+                // when the tracked body gets lost, abort the snippet recording
+                if (cbBodies.SelectedItem == null)
+                {
+                    snippet_aborted = true;
+                    RecordSnippet(null,null);
+                    return;
+                }
+
                 BoxBody selectedBody = cbBodies.SelectedItem as BoxBody;
                 if (selectedBody != null)
                 {
@@ -585,8 +565,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
         private void UpdateTimer(TimeSpan time)
         {
-            this.CurrentTimeText = "Current Time: " + time.ToString(@"hh\:mm\:ss") + "/" + duration.ToString(@"hh\:mm\:ss");
-            
+            CurrentTimeText = "Current Time: " + time.ToString(@"hh\:mm\:ss") + "/" + duration.ToString(@"hh\:mm\:ss");
             
             if (!userIsDraggingSlider)
             {
@@ -606,8 +585,10 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             {
                 LoadButton.IsEnabled = false;
                 PlayPauseButton.IsEnabled = true;
-                PlayPauseButton.Content = "Pause";
+                PlayPauseImage.Source = new BitmapImage(new Uri(@"Images\controls\pause.png", UriKind.Relative));
                 StopButton.IsEnabled = true;
+                SkipButton.IsEnabled = true;
+                ReverseButton.IsEnabled = true;
                 this.RecordPlaybackStatusText = "Playback is playing";
                 sliProgress.IsEnabled = true;
             }
@@ -615,42 +596,40 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             {
                 LoadButton.IsEnabled = false;
                 PlayPauseButton.IsEnabled = true;
-                PlayPauseButton.Content = "Resume";
+                PlayPauseImage.Source = new BitmapImage(new Uri(@"Images\controls\play.png", UriKind.Relative));
                 StopButton.IsEnabled = true;
+                SkipButton.IsEnabled = true;
+                ReverseButton.IsEnabled = true;
                 this.RecordPlaybackStatusText = "Playback is paused";
                 sliProgress.IsEnabled = true;
-            }
-            // maybe useless?
-            else if (FileLoaded)
-            {
-                LoadButton.IsEnabled = false;
-                PlayPauseButton.IsEnabled = true;
-                StopButton.IsEnabled = true;
-                this.RecordPlaybackStatusText = "Playback is loaded";
             }
             else if(IsStopped)
             {
                 LoadButton.IsEnabled = true;
                 PlayPauseButton.IsEnabled = false;
                 StopButton.IsEnabled = false;
+                SkipButton.IsEnabled = false;
+                ReverseButton.IsEnabled = false;
+                sliProgress.IsEnabled = false;
+
                 this.RecordPlaybackStatusText = "Playback is stopped";
                 this.CurrentTimeText = "";
-                sliProgress.IsEnabled = false;
+
+                kinectBodyViewbox.DataContext = null;
+                kinectIRViewbox.DataContext = null;
+                cbBodies.ItemsSource = null;
             }
 
             if (RecordingSnippet)
             {
                 LoadButton.IsEnabled = false;
-                PlayPauseButton.IsEnabled = false;
+                PlayPauseButton.IsEnabled = true;
                 StopButton.IsEnabled = false;
                 SnippetButton.IsEnabled = true;
-                SnippetButton.Content = "StopSnippet";
                 sliProgress.IsEnabled = false;
             }
             else
             {
-                SnippetButton.Content = "StartSnippet";
-
                 if (!IsStopped) sliProgress.IsEnabled = true;
             }
         }
@@ -663,10 +642,12 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         {
             string fileName = string.Empty;
 
-            OpenFileDialog dlg = new OpenFileDialog();
-            dlg.FileName = this.lastFile;
-            dlg.DefaultExt = Properties.Resources.XefExtension; // Default file extension
-            dlg.Filter = Properties.Resources.EventFileDescription + " " + Properties.Resources.EventFileFilter; // Filter files by extension 
+            OpenFileDialog dlg = new OpenFileDialog
+            {
+                FileName = this.lastFile,
+                DefaultExt = Properties.Resources.XefExtension, // Default file extension
+                Filter = Properties.Resources.EventFileDescription + " " + Properties.Resources.EventFileFilter // Filter files by extension 
+            };
             bool? result = dlg.ShowDialog();
 
             if (result == true)
@@ -677,116 +658,27 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             return fileName;
         }
 
-        private void StopButton_Click(object sender, RoutedEventArgs e)
-        {
-            _isStopped = true;
-            PlayPauseButton.Content = "Play";
-            kinectBodyIndexViewbox.DataContext = null;
-            kinectBodyViewbox.DataContext = null;
-            kinectDepthViewbox.DataContext = null;
-            kinectIRViewbox.DataContext = null;
-
-            cbBodies.ItemsSource = null;
-        }
-
-        private void SliProgress_DragStarted(object sender, DragStartedEventArgs e)
-        {
-            userIsDraggingSlider = true;
-            _isPaused = true;
-        }
-
-        private void SliProgress_DragCompleted(object sender, DragCompletedEventArgs e)
-        {
-            userIsDraggingSlider = false;
-            userDraggedSlider = true;
-            newStartingPoint = TimeSpan.FromSeconds(sliProgress.Value);
-        }
-
-        private void LoadButton_Click(object sender, RoutedEventArgs e)
-        {
-            string filePath = this.OpenFileForPlayback();
-
-            if (this.kinectIRViewbox.DataContext == null)
-            {
-                // create the IR visualizer
-                this.kinectIRView = new KinectIRView(this.kinectSensor);
-
-                // create the Depth visualizer
-                this.kinectDepthView = new KinectDepthView(this.kinectSensor);
-
-                // create the BodyIndex visualizer
-                this.kinectBodyIndexView = new KinectBodyIndexView(this.kinectSensor);
-
-                // create the Body visualizer
-                this.kinectBodyView = new KinectBodyView(this.kinectSensor);
-
-                this.kinectIRViewbox.DataContext = this.kinectIRView;
-                this.kinectDepthViewbox.DataContext = this.kinectDepthView;
-                this.kinectBodyIndexViewbox.DataContext = this.kinectBodyIndexView;
-                this.kinectBodyViewbox.DataContext = this.kinectBodyView;
-            }
-
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                this.lastFile = filePath;
-
-                // Start running the playback asynchronously
-                OneArgDelegate playback = new OneArgDelegate(this.PlaybackClip);
-                playback.BeginInvoke(filePath, null, null);
-            }
-        }
-
-        private void PlayPauseButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_isPaused)
-            {
-                _isPaused = true;
-            }
-            else
-            {
-                _isPaused = false;
-            }
-        }
-
+        // When the slider value changes, the timer gets updated
         private void SliProgress_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (userIsDraggingSlider)
             {
                 UpdateTimer(TimeSpan.FromSeconds(sliProgress.Value));
             }
-            //UpdateTimer(TimeSpan.FromSeconds(sliProgress.Value));
-            //lblProgressStatus.Text = TimeSpan.FromSeconds(sliProgress.Value).ToString(@"hh\:mm\:ss");
         }
 
-        /// <summary>
-        /// Starts or Stops the recording of the snippet
-        /// Changes GUI accordingly
-        /// </summary>
-        private void SnippetButton_Click(object sender, RoutedEventArgs e)
+        private void SliProgress_DragStarted(object sender, DragStartedEventArgs e)
         {
-            if (RecordingSnippet)
-            {
-                RecordingSnippet = false;
+            userIsDraggingSlider = true;
+            IsPaused = true;
+        }
 
-                //Gets last snippet of the list (which is the one recording at the moment) and adds data
-                snippets[snippets.Count - 1].Ending = TimeSpan.FromSeconds(sliProgress.Value);
-                snippets[snippets.Count - 1].CodeBack = backCode;
-                snippets[snippets.Count - 1].CodeArms = armsCode;
-                snippets[snippets.Count - 1].CodeLegs = legsCode;
-
-                snippets[snippets.Count - 1].PrintXml();
-
-                Debug.WriteLine(snippets[snippets.Count - 1].InfoAsString());
-
-                
-            }
-            else
-            {
-                RecordingSnippet = true;
-
-                Snippet snippet = new Snippet(TimeSpan.FromSeconds(sliProgress.Value));
-                snippets.Add(snippet);
-            }
+        // Set the newStartingPoint, so the playback moves to that point in the playback
+        private void SliProgress_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            userIsDraggingSlider = false;
+            userDraggedSlider = true;
+            newStartingPoint = TimeSpan.FromSeconds(sliProgress.Value);
         }
 
         /// <summary>
@@ -859,9 +751,170 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             }
             else
             {
-                if (!_recordingSnippet)
+                if (!RecordingSnippet)
                 {
                     SnippetButton.IsEnabled = false;
+                }
+            }
+        }
+
+        // If the Views are null, set new instances
+        // If the filePath is legit, start the playback
+        private void Load(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (!FileLoaded || IsStopped)
+            {
+                string filePath = this.OpenFileForPlayback();
+
+                if (this.kinectIRViewbox.DataContext == null)
+                {
+                    // create the IR visualizer
+                    this.kinectIRView = new KinectIRView(this.kinectSensor);
+
+                    // create the Body visualizer
+                    this.kinectBodyView = new KinectBodyView(this.kinectSensor);
+
+                    this.kinectIRViewbox.DataContext = this.kinectIRView;
+                    this.kinectBodyViewbox.DataContext = this.kinectBodyView;
+                }
+
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    this.lastFile = filePath;
+
+                    if (Path.GetExtension(lastFile) != ".xef")
+                    {
+                        MessageBox.Show("Bitte wählen Sie nur .xef Dateien aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Start running the playback asynchronously
+                    OneArgDelegate playback = new OneArgDelegate(this.PlaybackClip);
+                    playback.BeginInvoke(filePath, null, null);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Change the Play/Pause state of the playback
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void PlayPause(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (FileLoaded && !IsPaused)
+            {
+                IsPaused = true;
+            }
+            else
+            {
+                IsPaused = false;
+            }
+        }
+
+        /// <summary>
+        /// Stops the playback
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Stop(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (FileLoaded && !RecordingSnippet)
+            {
+                IsStopped = true;
+            }
+        }
+
+        /// <summary>
+        /// Starts or Stops the recording of the snippet
+        /// Changes GUI accordingly
+        /// </summary>
+        private void RecordSnippet(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (FileLoaded)
+            {
+                if (RecordingSnippet)
+                {
+                    BorderRecording.BorderBrush = Brushes.Transparent;
+                    RecordingSnippet = false;
+
+                    //Gets last snippet of the list (which is the one recording at the moment) and adds data
+                    snippets[snippets.Count - 1].Ending = TimeSpan.FromSeconds(sliProgress.Value);
+                    snippets[snippets.Count - 1].CodeBack = backCode;
+                    snippets[snippets.Count - 1].CodeArms = armsCode;
+                    snippets[snippets.Count - 1].CodeLegs = legsCode;
+
+                    if (snippet_aborted)
+                    {
+                        IsPaused = true;
+                        MessageBox.Show("Das ausgewählte Skelett wird nicht mehr getracked. Die Aufnahme wird beendet, das Video pausiert und es wird keine XML Datei ertellt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        snippets[snippets.Count - 1].PrintXml();
+                    }
+                }
+                else
+                {
+                    if (cbBodies.SelectedItem != null)
+                    {
+                        BorderRecording.BorderBrush = Brushes.Red;
+                        snippet_aborted = false;
+                        RecordingSnippet = true;
+
+                        Snippet snippet = new Snippet(TimeSpan.FromSeconds(sliProgress.Value));
+                        snippets.Add(snippet);
+                    }
+                    else
+                    {
+                        IsPaused = true;
+                        MessageBox.Show("Sie haben keinen Body selektiert. Bitte wählen Sie den Body zum Tracken in der Listbox aus! Das Video wird pausiert.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Uses the slider mechanics to skip forward the playback based the skip_value ( in seconds)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public void Skip(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (FileLoaded)
+            {
+                //the pause allows the playback loop to go into paused state, where the skip happens based on the newStartingPoint
+                if (TimeSpan.FromSeconds(sliProgress.Value + skip_value) < duration && !RecordingSnippet)
+                {
+                    IsPaused = true;
+                    userDraggedSlider = true;
+                    newStartingPoint = TimeSpan.FromSeconds(sliProgress.Value + skip_value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Uses the slider mechanics to reverse back the playback based on the reverse_value ( in seconds)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public void Reverse(Object sender, ExecutedRoutedEventArgs e)
+        {
+            if (FileLoaded)
+            {
+                if (!RecordingSnippet)
+                {
+                    IsPaused = true;
+                    userDraggedSlider = true;
+
+                    if ((sliProgress.Value - reverse_value) < 0)
+                    {
+                        newStartingPoint = TimeSpan.FromSeconds(0);
+                    }
+                    else
+                    {
+                        newStartingPoint = TimeSpan.FromSeconds(sliProgress.Value - reverse_value);
+                    }
                 }
             }
         }

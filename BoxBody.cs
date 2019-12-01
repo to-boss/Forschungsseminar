@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 {
+    /// <summary>
+    /// Allows a kinect body to update the combo box, with the use of the INotifyPropertyChanged interface
+    /// </summary>
     class BoxBody : INotifyPropertyChanged
     {
         private ulong trackingId;
