@@ -325,10 +325,10 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
 
-                            this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
-                            this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
+                            //this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
+                            //this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
 
-                            this.DrawText("Body " + body.TrackingId,jointPoints[JointType.Head], dc);
+                            this.DrawText("Body " + body.TrackingId % 1000,jointPoints[JointType.Head], dc);
                         }
                     }
 
