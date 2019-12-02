@@ -784,7 +784,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
 
                     if (Path.GetExtension(lastFile) != ".xef")
                     {
-                        MessageBox.Show("Bitte wählen Sie nur .xef Dateien aus.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Only .xef files are supported.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -847,7 +847,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     if (snippet_aborted)
                     {
                         IsPaused = true;
-                        MessageBox.Show("Das ausgewählte Skelett wird nicht mehr getracked. Die Aufnahme wird beendet, das Video pausiert und es wird keine XML Datei ertellt.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("The tracked body got lost. The recording stopped and no .xml file will be created.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                     else
                     {
@@ -868,7 +868,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     else
                     {
                         IsPaused = true;
-                        MessageBox.Show("Sie haben keinen Body selektiert. Bitte wählen Sie den Body zum Tracken in der Listbox aus! Das Video wird pausiert.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Please select a body to track.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }

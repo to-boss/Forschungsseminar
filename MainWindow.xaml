@@ -142,7 +142,7 @@
                         <Button x:Name="SnippetButton" Width="70" Command="{StaticResource CommandSnippet}" Margin="5" Padding="5" IsEnabled="False">
                             <Image Source="Images\controls\record.png" Stretch="None"/>
                         </Button>
-                        <TextBlock Text="{Binding RecordPlaybackStatusText}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource KinectBlueBrush}" FontFamily="Segoe UI" FontSize="18" Margin="0 0 -1 0"/>
+                        <TextBlock Text="{Binding RecordPlaybackStatusText}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource KinectBlueBrush}" FontFamily="Segoe UI" FontSize="18" Margin="50 0 0 0"/>
                     </StackPanel>
                 </Grid>
             </Grid>
