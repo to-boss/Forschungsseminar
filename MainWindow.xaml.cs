@@ -67,7 +67,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
         /// <summary> Number of playback iterations </summary>
         private uint loopCount = 0;
 
-        /// when these Properties change, they trigger the UpdateState Method, to update theUI
+        /// when these Properties change, they trigger the UpdateState Method, to update the UI
         /// <summary> Indicates if a snippet is currently recording </summary>
         public bool RecordingSnippet
         {
@@ -302,6 +302,9 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             }
         }
 
+        /// <summary>
+        /// Gets or sets the current time text of the playback
+        /// </summary>
         public string CurrentTimeText
         {
             get
@@ -402,6 +405,12 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
 
+
+        /// <summary>
+        /// Changes the internal properties based on the KStudiPlaybackState 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         void HandleStateChange(Object sender, EventArgs e)
         {
             KStudioPlayback playback = (KStudioPlayback) sender;
@@ -517,9 +526,14 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             }
         }
 
-       
+       /// <summary>
+       /// Happens when bodies from the KinectBodyView frame arrive
+       /// </summary>
+       /// <param name="sender"></param>
+       /// <param name="e"></param>
         private void BodiesArrived(object sender, BodiesArrivedEventArgs e)
         {
+            //sets the combobox itemsource if not already set
             if (cbBodies.ItemsSource == null)
             {
                 cbBodies.ItemsSource = bodies;
@@ -540,7 +554,6 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             // removes all bodies which only exist in bodies and not in e.Bodies
             bodies.Remove(a => !e.Bodies.Exists(b => a.TrackindId == b.TrackingId));
 
-            // add trackedBody to snippet
             if (RecordingSnippet)
             {
                 // when the tracked body gets lost, abort the snippet recording
@@ -551,6 +564,7 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
                     return;
                 }
 
+                // adds the selected body from the combobox to the trackedBodyList from the recording snippet
                 BoxBody selectedBody = cbBodies.SelectedItem as BoxBody;
                 if (selectedBody != null)
                 {
@@ -563,6 +577,10 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             }
         }
 
+        /// <summary>
+        /// Updates the text UI and slider UI
+        /// </summary>
+        /// <param name="time"></param>
         private void UpdateTimer(TimeSpan time)
         {
             CurrentTimeText = "Current Time: " + time.ToString(@"hh\:mm\:ss") + "/" + duration.ToString(@"hh\:mm\:ss");
@@ -658,7 +676,11 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             return fileName;
         }
 
-        // When the slider value changes, the timer gets updated
+        /// <summary>
+        /// When the slider value changes, the timer gets updated
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void SliProgress_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (userIsDraggingSlider)
@@ -667,13 +689,22 @@ namespace Microsoft.Samples.Kinect.RecordAndPlaybackBasics
             }
         }
 
+        /// <summary>
+        /// pauses the video when user starts dragging the slider
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void SliProgress_DragStarted(object sender, DragStartedEventArgs e)
         {
             userIsDraggingSlider = true;
             IsPaused = true;
         }
 
-        // Set the newStartingPoint, so the playback moves to that point in the playback
+        /// <summary>
+        /// Set the newStartingPoint, so the playback moves to that point in the playback
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void SliProgress_DragCompleted(object sender, DragCompletedEventArgs e)
         {
             userIsDraggingSlider = false;
